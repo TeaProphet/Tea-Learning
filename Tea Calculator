@@ -1,0 +1,210 @@
+from tkinter import *
+from tkinter import messagebox
+import math
+calc = Tk()
+calc.title('Калькулятор')
+calc['bg'] = '#48494f'
+buttons = (('1', '2', '3', '/'),
+           ('4', '5', '6', '*'),
+           ('7', '8', '9', '-'),
+           ('.', '0', '=', '+'),
+           ('(', ')', '^', 'f'),
+           ('sin', 'cos', 'tan', 'ctan'))
+
+activeStr = ''
+stack = []
+
+
+def calculate():
+    global stack
+    global activeStr
+    print(activeStr)
+    try:
+        que, stk, i, unary = [], [], 0, True
+        import math
+        activeStr = activeStr.replace('sin', 's').replace('cos', 'c').replace('tan', 't').replace('ctan', 'k').replace('pi', str(math.pi))
+        OP_CTG = ord('k')
+        OP_TG = ord('t')
+        OP_COS = ord('c')
+        OP_SIN = ord('s')
+        OP_GRADE = ord('^')
+        OP_FACTORIAL = ord('f')
+        OP_BINARY_ADD = ord("+")
+        OP_BINARY_SUB = ord("-")
+        OP_BINARY_MUL = ord("*")
+        OP_BINARY_DIV = ord("/")
+        OP_UNARY_ADD = -OP_BINARY_ADD
+        OP_UNARY_SUB = -OP_BINARY_SUB
+
+        PRIORITY = {}
+
+        PRIORITY[OP_BINARY_ADD] = 1
+        PRIORITY[OP_BINARY_SUB] = 1
+        PRIORITY[OP_BINARY_MUL] = 2
+        PRIORITY[OP_BINARY_DIV] = 2
+        PRIORITY[OP_SIN] = 2
+        PRIORITY[OP_COS] = 2
+        PRIORITY[OP_TG] = 2
+        PRIORITY[OP_CTG] = 2
+        PRIORITY[OP_GRADE] = 3
+        PRIORITY[OP_UNARY_ADD] = 3
+        PRIORITY[OP_UNARY_SUB] = 3
+        PRIORITY[OP_FACTORIAL] = 3
+
+        def priority(token):
+            if token in PRIORITY:
+                return PRIORITY[token]
+            else:
+                return -1
+
+        def process_op():
+            op = stk.pop()
+
+            if op < 0:
+                val = que.pop()
+                if op == OP_UNARY_ADD: que.append(val)
+                if op == OP_UNARY_SUB: que.append(-val)
+            elif op == OP_FACTORIAL:
+                val = que.pop()
+                if op == OP_FACTORIAL: que.append(math.factorial(val))
+            elif op == OP_SIN:
+                val = que.pop()
+                que.append(float(round(math.sin(val), 15)))
+            elif op == OP_COS:
+                val = que.pop()
+                que.append(float(round(math.cos(val), 15)))
+            elif op == OP_TG:
+                val = que.pop()
+                if val % (math.pi/2) == 0:
+                    que.append(float(round(math.tan(val), 15)))
+                else:
+                    messagebox.showerror('Ошибка', 'Некорректное значение тангенса')
+            elif op == OP_CTG:
+                val = que.pop()
+                if val % (math.pi) == 0:
+                    que.append(1 / float(round(math.tan(val), 15)))
+                else:
+                    messagebox.showerror('Ошибка', 'Некорректное значение котангенса')
+            else:
+                r, l = que.pop(), que.pop()
+                if op == OP_BINARY_ADD: que.append(l + r)
+                if op == OP_BINARY_SUB: que.append(l - r)
+                if op == OP_BINARY_MUL: que.append(l * r)
+                if op == OP_BINARY_DIV: que.append(l / r)
+                if op == OP_GRADE: que.append(l ** r)
+
+        while i < len(activeStr):
+            if activeStr[i] != " ":
+                if activeStr[i] == "(":
+                    stk.append("(")
+                    unary = True
+                elif activeStr[i] == ")":
+                    while len(stk) != 0 and stk[-1] != "(":
+                        process_op()
+                    stk.pop()
+                    unary = False
+                elif activeStr[i] in "+-*/f^sctk":
+                    op = -ord(activeStr[i]) if activeStr[i] in "+-" and unary else ord(activeStr[i])
+
+                    while len(stk) != 0 and priority(stk[-1]) >= PRIORITY[op]:
+                        process_op()
+                    stk.append(op)
+                    unary = True
+                else:
+                    from re import search
+
+                    match = search("\d*\.\d+|\d+", activeStr[i:])
+                    i += match.end() - 1
+
+                    if match != None and match.start() == 0:
+                        que.append(float(match.group()))
+
+                    unary = False
+            i += 1
+        while len(stk) != 0:
+            process_op()
+
+        result = que
+        result = round(result[0], 6)
+        activeStr = str(result).replace('[', '').replace(']','')
+        label.configure(text=result)
+        r = Tk()
+        r.withdraw()
+        r.clipboard_clear()
+        r.clipboard_append(result)
+        r.update()
+        r.destroy()
+    except SyntaxError:
+        messagebox.showerror('Ошибка ввода', 'Некорректное выражение')
+        activeStr = ''
+        stack = [0]
+        label.configure(text='0')
+        text = ''
+    except ZeroDivisionError:
+        messagebox.showerror('Ошибка ввода', 'Деление на 0')
+        activeStr = ''
+        stack = [0]
+        label.configure(text='0')
+        text = ''
+
+
+def click(text):
+    global activeStr
+    global stack
+    if text == 'CE':
+        stack.clear()
+        activeStr = ''
+        label.configure(text='0')
+    elif '0' <= text <= '9':
+        activeStr += text
+        label.configure(text=activeStr)
+    elif text == '.':
+        if activeStr[-1] != '.':
+            activeStr += text
+            label.configure(text=activeStr)
+    elif text == '(' or text == ')':
+        activeStr += text
+        label.configure(text=activeStr)
+    else:
+        if text == '=':
+            calculate()
+        else:
+            activeStr += text
+            label.configure(text=activeStr)
+
+
+label = Label(calc, text='0',
+        font = 'Comfortaa 13',
+        width=35,
+        height = 2,
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+label.grid(row=0, column=0, columnspan=4, sticky = 'n')
+button = Button(calc, text='CE', command=lambda text='CE': click(text), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+button.grid(row=1, column=2, columnspan=2, sticky="nsew")
+button = Button(calc, text='pi', command=lambda text='pi': click(text), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+button.grid(row=1, column=0, columnspan=2, sticky="nsew")
+for row in range(6):
+    for col in range(4):
+        button = Button(calc, text=buttons[row][col],
+        command=lambda row=row, col=col: click(buttons[row][col]), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+        button.grid(row=row + 2, column=col, sticky="nsew")
+calc.mainloop()
