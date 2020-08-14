@@ -150,14 +150,14 @@ def click(text): #Function for entering expression
     elif text == 'DEL':
         try:
             if (ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('p') + ord('i')):
-                activeStr = activeStr[0:-3]
-            elif  (ord (activeStr[-3]) + ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('t') + ord('g') + ord('(')):
-                activeStr = activeStr[0:-3]
+                activeStr = activeStr[0:-2]
+            elif  (ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('t') + ord('g')):
+                activeStr = activeStr[0:-2]
             else:
                 if activeStr[-1].isdigit() == True or activeStr[-1] in '()*/+-f^':
                     activeStr = activeStr[0:-1]
                 else:
-                    activeStr = activeStr[0:-4]
+                    activeStr = activeStr[0:-3]
         except IndexError:
             activeStr = activeStr[0:-1]
         if activeStr == '':
