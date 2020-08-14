@@ -1,28 +1,26 @@
 from tkinter import *
 from tkinter import messagebox
-import math
-calc = Tk()
+calc = Tk() #Creating window
 calc.title('Калькулятор')
+calc.iconbitmap('chaj-neo-1.ico')
 calc['bg'] = '#48494f'
-buttons = (('1', '2', '3', '/'),
+buttons = (('1', '2', '3', '/'), #Buttons of calculator (except CE, pi and trigonometry)
            ('4', '5', '6', '*'),
            ('7', '8', '9', '-'),
            ('.', '0', '=', '+'),
-           ('(', ')', '^', 'f'),
-           ('sin', 'cos', 'tan', 'ctan'))
+           ('(', ')', '^', 'f'))
 
 activeStr = ''
-stack = []
 
 
-def calculate():
-    global stack
+def calculate(): #Calculating expression
     global activeStr
-    print(activeStr)
     try:
         que, stk, i, unary = [], [], 0, True
         import math
-        activeStr = activeStr.replace('sin', 's').replace('cos', 'c').replace('tan', 't').replace('ctan', 'k').replace('pi', str(math.pi))
+        #Replacing
+        activeStr = activeStr.replace('sin', 's').replace('cos', 'c').replace('tg', 't').replace('ctg', 'k').replace('pi', str(math.pi))
+        #Operators
         OP_CTG = ord('k')
         OP_TG = ord('t')
         OP_COS = ord('c')
@@ -37,7 +35,7 @@ def calculate():
         OP_UNARY_SUB = -OP_BINARY_SUB
 
         PRIORITY = {}
-
+        #Priority of operators
         PRIORITY[OP_BINARY_ADD] = 1
         PRIORITY[OP_BINARY_SUB] = 1
         PRIORITY[OP_BINARY_MUL] = 2
@@ -51,13 +49,14 @@ def calculate():
         PRIORITY[OP_UNARY_SUB] = 3
         PRIORITY[OP_FACTORIAL] = 3
 
+        #Calculating priority
         def priority(token):
             if token in PRIORITY:
                 return PRIORITY[token]
             else:
                 return -1
 
-        def process_op():
+        def process_op(): #Executing ops
             op = stk.pop()
 
             if op < 0:
@@ -93,7 +92,7 @@ def calculate():
                 if op == OP_BINARY_DIV: que.append(l / r)
                 if op == OP_GRADE: que.append(l ** r)
 
-        while i < len(activeStr):
+        while i < len(activeStr): #Executing expression
             if activeStr[i] != " ":
                 if activeStr[i] == "(":
                     stk.append("(")
@@ -110,7 +109,7 @@ def calculate():
                         process_op()
                     stk.append(op)
                     unary = True
-                else:
+                else: #Transforming expression into reverse Polish notation
                     from re import search
 
                     match = search("\d*\.\d+|\d+", activeStr[i:])
@@ -121,12 +120,12 @@ def calculate():
 
                     unary = False
             i += 1
-        while len(stk) != 0:
+        while len(stk) != 0: #Cycle of executing expression
             process_op()
 
         result = que
         result = round(result[0], 6)
-        activeStr = str(result).replace('[', '').replace(']','')
+
         label.configure(text=result)
         r = Tk()
         r.withdraw()
@@ -137,24 +136,35 @@ def calculate():
     except SyntaxError:
         messagebox.showerror('Ошибка ввода', 'Некорректное выражение')
         activeStr = ''
-        stack = [0]
         label.configure(text='0')
-        text = ''
     except ZeroDivisionError:
         messagebox.showerror('Ошибка ввода', 'Деление на 0')
         activeStr = ''
-        stack = [0]
         label.configure(text='0')
-        text = ''
 
 
-def click(text):
+def click(text): #Function for entering expression
     global activeStr
-    global stack
     if text == 'CE':
-        stack.clear()
         activeStr = ''
         label.configure(text='0')
+    elif text == 'DEL':
+        try:
+            if (ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('p') + ord('i')):
+                activeStr = activeStr[0:-3]
+            elif  (ord (activeStr[-3]) + ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('t') + ord('g') + ord('(')):
+                activeStr = activeStr[0:-3]
+            else:
+                if activeStr[-1].isdigit() == True or activeStr[-1] in '()*/+-f^':
+                    activeStr = activeStr[0:-1]
+                else:
+                    activeStr = activeStr[0:-4]
+        except IndexError:
+            activeStr = activeStr[0:-1]
+        if activeStr == '':
+            label.configure(text='0')
+        else:
+            label.configure(text=activeStr)
     elif '0' <= text <= '9':
         activeStr += text
         label.configure(text=activeStr)
@@ -173,7 +183,10 @@ def click(text):
             label.configure(text=activeStr)
 
 
-label = Label(calc, text='0',
+#Creating buttons
+
+
+label = Label(calc, text='0', #Label for expression
         font = 'Comfortaa 13',
         width=35,
         height = 2,
@@ -189,15 +202,22 @@ button = Button(calc, text='CE', command=lambda text='CE': click(text), font = '
         activeforeground = '#eff5c9',
         activebackground = '#6e6f73',
         relief = 'solid')
-button.grid(row=1, column=2, columnspan=2, sticky="nsew")
+button.grid(row=1, column=3, columnspan=1, sticky="nsew")
+button = Button(calc, text='DEL', command=lambda text='DEL': click(text), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+button.grid(row=1, column=2, columnspan=1, sticky="nsew")
 button = Button(calc, text='pi', command=lambda text='pi': click(text), font = 'Comfortaa 10',
         fg = '#eff5c9',
         bg = '#48494f',
         activeforeground = '#eff5c9',
         activebackground = '#6e6f73',
         relief = 'solid')
-button.grid(row=1, column=0, columnspan=2, sticky="nsew")
-for row in range(6):
+button.grid(row=1, column=1, columnspan=1, sticky="nsew")
+for row in range(5): #Buttons from list from starting
     for col in range(4):
         button = Button(calc, text=buttons[row][col],
         command=lambda row=row, col=col: click(buttons[row][col]), font = 'Comfortaa 10',
@@ -207,4 +227,32 @@ for row in range(6):
         activebackground = '#6e6f73',
         relief = 'solid')
         button.grid(row=row + 2, column=col, sticky="nsew")
+button = Button(calc, text='sin', command=lambda text='sin(': click(text), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+button.grid(row=7, column=0, columnspan=1, sticky="nsew")
+button = Button(calc, text='cos', command=lambda text='cos(': click(text), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+button.grid(row=7, column=1, columnspan=1, sticky="nsew")
+button = Button(calc, text='tg', command=lambda text='tg(': click(text), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+button.grid(row=7, column=2, columnspan=1, sticky="nsew")
+button = Button(calc, text='ctg', command=lambda text='ctg(': click(text), font = 'Comfortaa 10',
+        fg = '#eff5c9',
+        bg = '#48494f',
+        activeforeground = '#eff5c9',
+        activebackground = '#6e6f73',
+        relief = 'solid')
+button.grid(row=7, column=3, columnspan=1, sticky="nsew")
 calc.mainloop()
