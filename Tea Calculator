@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 calc = Tk() #Creating window
 calc.title('Калькулятор')
+calc.iconbitmap('chaj-neo-1.ico')
 calc['bg'] = '#48494f'
 buttons = (('1', '2', '3', '/'), #Buttons of calculator (except CE, pi and trigonometry)
            ('4', '5', '6', '*'),
@@ -151,7 +152,7 @@ def click(text): #Function for entering expression
         try:
             if (ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('p') + ord('i')):
                 activeStr = activeStr[0:-2]
-            elif  (ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('t') + ord('g')):
+            elif  ( + ord(activeStr[-2]) + ord(activeStr[-1])) == (ord('t') + ord('g')):
                 activeStr = activeStr[0:-2]
             else:
                 if activeStr[-1].isdigit() == True or activeStr[-1] in '()*/+-f^':
@@ -255,3 +256,4 @@ button = Button(calc, text='ctg', command=lambda text='ctg(': click(text), font 
         relief = 'solid')
 button.grid(row=7, column=3, columnspan=1, sticky="nsew")
 calc.mainloop()
+
