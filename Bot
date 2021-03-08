@@ -1,1 +1,217 @@
+import random
+from vk_api import VkUpload
+from vk_api.utils import get_random_id
+import TimeInstruments
+
+
+class BotResponse:
+    def __init__(self, text, link):
+        self.text = text
+        self.link = link
+
+
+def write_msg(bot_response: BotResponse, vk, session):
+    if bot_response.link is None:
+        vk.messages.send(
+            key=(''),
+            server=(''),
+            ts=(''),
+            random_id=get_random_id(),
+            message=bot_response.text,
+            peer_id=2000000001
+        )
+    else:
+        attachments = []
+        upload = VkUpload(vk)
+        image = session.get(bot_response.link, stream=True)
+        photo = upload.photo_messages(photos=image.raw)[0]
+        attachments.append(
+            'photo{}_{}'.format(photo['owner_id'], photo['id'])
+        )
+        vk.messages.send(
+            key=(''),
+            server=(''),
+            ts=(''),
+            random_id=get_random_id(),
+            message=bot_response.text,
+            peer_id=2000000001,
+            attachment=','.join(attachments)
+        )
+
+
+def dayToNum(raw_message):
+    day = raw_message[raw_message.rfind(' ') + 1:len(raw_message)]
+    dayNum = {"понедельник": 1,
+              "вторник": 2,
+              "среду": 3,
+              "четверг": 4,
+              "пятницу": 5,
+              "субботу": 6}
+    return dayNum.get(day)
+
+
+def read_txt(filename):
+    f = open(filename, 'r', encoding='utf-8')
+    schedule = ""
+    rawSchedule = f.readlines()
+    for i in range(len(rawSchedule)):
+        schedule += rawSchedule[i]
+    return schedule
+
+
+def get_schedule(day):
+    if day == 7:
+        return "Запрошенный вами день - выходной"
+    return "Ваше расписание:\n" + read_txt(str(day) + str(TimeInstruments.getNumOfWeek() % 2) + '.txt')
+
+
+def find_week(command):
+    temp = command[command.rfind(' '):len(command)]
+    numOfWeek = {"числитель": 0, "знаменатель": 1}
+    return numOfWeek.get(temp[temp.rfind(' ') + 1:len(temp)])
+
+
+def revertEvenness(numOfWeek):
+    if numOfWeek == "0":
+        return "1"
+    else:
+        return "0"
+
+
+def find_schedule(command: str):
+    numOfWeek = str(find_week(command))
+    if str(numOfWeek) != "None":
+        command = command[0:command.rfind(' ')]
+    day = str(dayToNum(command))
+    if str(day) == "None":
+        return "Я не могу понять вашу просьбу."
+    if str(numOfWeek) == "None":
+        numOfWeek = str(TimeInstruments.getNumOfWeek() % 2)
+        if TimeInstruments.getDayOfWeek() > int(day):
+            numOfWeek = revertEvenness(numOfWeek)
+    return "Ваше расписание:\n" + read_txt(day + numOfWeek + ".txt")
+
+
+
+def adding_links(link):
+    add = open('links.txt', 'a', encoding='utf-8')
+    link = '\n' + str(link)
+    add.write(link)
+    add.close()
+
+
+def remove_links(link):
+    read = open('links.txt', 'r', encoding='utf8')
+    links = str(read.read())
+    read.close()
+    if links.find(link) != -1:
+        links = links[0:links.find(link)-1] + links[links.find(link)+len(link):]
+    rewrite = open('links.txt', 'w')
+    rewrite.write(links)
+    rewrite.close()
+
+
+class VkBot:
+
+    def __init__(self, botName, vk, session):
+        self._VK = vk
+        self._SESSION = session
+        self._NAME = botName.lower()
+        self._COMMANDS = ["ПРИВЕТ", "РАСПИСАНИЕ", "РАСПИСАНИЕ НА ЗАВТРА", "ЛАБОРАТОРИИ", "РАСПИСАНИЕ НА", "ПОМОГИ", "СПАСИБО", "ЛУЧШИЕ ХЕЛПЕРЫ",
+                          "НЕСИ КОФЕ", "ССЫЛКИ", "ДОБАВИТЬ ССЫЛКУ", "УДАЛИТЬ ССЫЛКУ", "ПОМОЩЬ"]
+        self._CHURAKOVA = ["ЫГРЕК", "ЫКС", "НАРЫК", "ВСЁ ИНТУИТИВНО ПОНЯТНО", "ВСЕ ИНТУИТИВНО ПОНЯТНО", "ШАШЛЫЧКИ"]
+
+
+    def new_message(self, message):
+        print(message)
+        # Привет
+        if message.upper() == self._COMMANDS[0]:
+            self.write_msg(BotResponse("Приветствую. Рад видеть вас в добром здравии", None))
+
+        # Расписание (сегодня)
+        elif message.upper() == self._COMMANDS[1]:
+            self.write_msg(BotResponse(get_schedule(TimeInstruments.getDayOfWeek()), None))
+
+        #Расписание (завтра)
+        elif message.upper() == self._COMMANDS[2]:
+            tomorrow = TimeInstruments.getDayOfWeek() + 1
+            if tomorrow == 8:
+                tomorrow = 1
+            self.write_msg(BotResponse(get_schedule(tomorrow), None))
+
+        # Лаборатории
+        elif message.upper() == self._COMMANDS[3]:
+            self.write_msg(BotResponse(read_txt("labs.txt"), None))
+
+        # Расписание (по указанному дню недели)
+        elif message.upper()[:13] == self._COMMANDS[4]:
+            self.write_msg(BotResponse(find_schedule(message), None))
+
+        elif message.upper() == self._COMMANDS[5]:
+            random_num = random.randrange(0, 2)
+            if random_num == 1:
+                self.write_msg(BotResponse('Да поможет вам Святая Маргарита', 'https://sun9-14.userapi.com/u1VocMXj-iZpyXavIwhlb4IsYBUesagcse406A/j9U6StIovQ8.jpg'))
+            else:
+                self.write_msg(BotResponse('Ваше отчаяние пугает меня. Не хотите выпить ромашкового чая?', 'https://sun9-30.userapi.com/wwO0G5rW9q3tad9F4iLvpWsEiCAmE2ji7NBtyg/FWJHlhQakno.jpg'))
+        elif message.upper() == self._COMMANDS[6]:
+            random_num = random.randrange(0, 2)
+            if random_num == 0:
+                self.write_msg(BotResponse('Я просто выполняю свою работу, вам вовсе не стоит говорить таких вещей, но... Спасибо', None))
+            elif random_num == 1:
+                self.write_msg(BotResponse('Меня искренне радуют ваши слова, надеюсь и дальше нести вам преданную службу :)', None))
+            elif random_num == 2:
+                self.write_msg(BotResponse('Спасибо вам за то, что вы цените меня и мою помощь.', None))
+        elif message.upper() == self._COMMANDS[7]:
+            self.write_msg(BotResponse('А вы их не знаете? Вот они, слева направо: [cherryyjuicee|Святая Маргарита], самая добрая и самоотверженная среди хелперов, [bababadalgharaghtakamminarronnko|Ульяна], владыка трапов, топ-1 шиппер, и просто человек-похуй, и [maxim.kakdela|Максим], студент Шрёдингера. Запомните!', None))
+        elif message.upper() == self._COMMANDS[8]:
+            self.write_msg(BotResponse('Будет исполнено.', 'https://sun9-31.userapi.com/Eks1HNQDOP28HVy0rT_sT2hKizTF66B3_n1EMQ/iXxBlKVhF2c.jpg'))
+        elif message.upper() == self._COMMANDS[9]:
+            self.write_msg(BotResponse(read_txt("links.txt"), None))
+        elif message.upper()[0:15] == self._COMMANDS[10]:
+            adding_links(message[16:])
+            self.write_msg(BotResponse("Исполнено.", None))
+        elif message.upper()[0:14] == self._COMMANDS[11]:
+            remove_links(message[15:])
+            self.write_msg(BotResponse("Исполнено.", None))
+        elif message.upper() == self._COMMANDS[12]:
+            self.write_msg(BotResponse(read_txt("instruction.txt"), None))
+        else:
+            self.write_msg(BotResponse("Я не могу понять вашу просьбу.", None))
+
+    def write_msg(self, bot_response: BotResponse):
+        if bot_response.link is None:
+            self._VK.messages.send(
+                key=(''),
+                server=(''),
+                ts=(''),
+                random_id=get_random_id(),
+                message=bot_response.text,
+                peer_id=2000000001
+            )
+        else:
+            attachments = []
+            upload = VkUpload(self._VK)
+            image = self._SESSION.get(bot_response.link, stream=True)
+            photo = upload.photo_messages(photos=image.raw)[0]
+            attachments.append(
+                'photo{}_{}'.format(photo['owner_id'], photo['id'])
+            )
+            self._VK.messages.send(
+                key=(''),
+                server=(''),
+                ts=(''),
+                random_id=get_random_id(),
+                message=bot_response.text,
+                peer_id=2000000001,
+                attachment=','.join(attachments)
+            )
+
+    def isMessageForBot(self, event):
+        appeal = str(event.object.text[0:len(self._NAME)]).lower()
+        return appeal == self._NAME
+
+    def check_Churakova(self, message):
+        for phrase in self._CHURAKOVA:
+            if phrase == message:
+                self.write_msg(BotResponse(self._CHURAKOVA[random.randrange(0, 4)], None))
 
